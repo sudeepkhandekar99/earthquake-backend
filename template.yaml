@@ -18,6 +18,9 @@ Parameters:
     Default: "/earthquake/dev/USGS_FEED_URL"
 
 Resources:
+  ###############################################################
+  # FastAPI Lambda (API Gateway)
+  ###############################################################
   ApiFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -36,7 +39,19 @@ Resources:
       Policies:
         - AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+        # Allow API Lambda to READ objects from S3
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:ListBucket
+              Resource:
+                - !Sub "arn:aws:s3:::${QuakesBucketName}"
+                - !Sub "arn:aws:s3:::${QuakesBucketName}/*"
 
+  ###############################################################
+  # Ingestion Lambda (EventBridge schedule → S3 raw/)
+  ###############################################################
   IngestFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -46,7 +61,6 @@ Resources:
         Schedule:
           Type: Schedule
           Properties:
-            # run every hour for now
             Schedule: rate(1 hour)
       Environment:
         Variables:
@@ -55,12 +69,16 @@ Resources:
       Policies:
         - AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+        # Allow ingestion Lambda to WRITE raw data to S3
         - Statement:
             - Effect: Allow
               Action:
                 - s3:PutObject
               Resource: !Sub "arn:aws:s3:::${QuakesBucketName}/*"
 
+###############################################################
+# Outputs
+###############################################################
 Outputs:
   ApiUrl:
     Description: "Invoke URL for the FastAPI Lambda"
