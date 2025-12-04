@@ -29,12 +29,15 @@ Resources:
           Properties:
             Path: /{proxy+}
             Method: ANY
-
       Environment:
         Variables:
           QUAKES_BUCKET_NAME: !Ref QuakesBucketName
           USGS_FEED_URL: !Ref UsgsFeedUrl
-
       Policies:
         - AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+
+Outputs:
+  ApiUrl:
+    Description: "Invoke URL for the FastAPI Lambda"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
