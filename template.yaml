@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Earthquake backend (FastAPI)
+
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: python3.11
+    MemorySize: 512
+
+Resources:
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: app.main.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          QUAKES_BUCKET_NAME: !Ref QuakesBucketName
+          USGS_FEED_URL: !Ref UsgsFeedUrl
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+
+  QuakesBucketName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/earthquake/dev/QUAKES_BUCKET_NAME"
+
+  UsgsFeedUrl:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/earthquake/dev/USGS_FEED_URL"
