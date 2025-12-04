@@ -8,6 +8,15 @@ Globals:
     Runtime: python3.11
     MemorySize: 512
 
+Parameters:
+  QuakesBucketName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/earthquake/dev/QUAKES_BUCKET_NAME"
+
+  UsgsFeedUrl:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/earthquake/dev/USGS_FEED_URL"
+
 Resources:
   ApiFunction:
     Type: AWS::Serverless::Function
@@ -20,18 +29,12 @@ Resources:
           Properties:
             Path: /{proxy+}
             Method: ANY
+
       Environment:
         Variables:
           QUAKES_BUCKET_NAME: !Ref QuakesBucketName
           USGS_FEED_URL: !Ref UsgsFeedUrl
+
       Policies:
         - AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
-
-  QuakesBucketName:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: "/earthquake/dev/QUAKES_BUCKET_NAME"
-
-  UsgsFeedUrl:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: "/earthquake/dev/USGS_FEED_URL"
