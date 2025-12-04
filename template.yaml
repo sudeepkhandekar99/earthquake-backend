@@ -37,6 +37,30 @@ Resources:
         - AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
 
+  IngestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: app.ingest.lambda_handler
+      Events:
+        Schedule:
+          Type: Schedule
+          Properties:
+            # run every hour for now
+            Schedule: rate(1 hour)
+      Environment:
+        Variables:
+          QUAKES_BUCKET_NAME: !Ref QuakesBucketName
+          USGS_FEED_URL: !Ref UsgsFeedUrl
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: !Sub "arn:aws:s3:::${QuakesBucketName}/*"
+
 Outputs:
   ApiUrl:
     Description: "Invoke URL for the FastAPI Lambda"
