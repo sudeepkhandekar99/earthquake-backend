@@ -1,18 +1,16 @@
 import os
+from collections import Counter
 
 from fastapi import FastAPI, HTTPException
 from mangum import Mangum
 
-from .storage import get_latest_raw
+from .storage import get_latest_raw, get_latest_curated
 
 app = FastAPI()
 
 
 @app.get("/health")
 async def health():
-    """
-    Simple health check, also returns which bucket and feed we're using.
-    """
     return {
         "status": "ok",
         "quakes_bucket": os.getenv("QUAKES_BUCKET_NAME"),
@@ -22,16 +20,41 @@ async def health():
 
 @app.get("/earthquakes/latest")
 async def latest():
-    """
-    Returns the latest raw USGS feed stored in S3.
-    """
     data = get_latest_raw()
     if not data:
         raise HTTPException(status_code=404, detail="No data yet")
-
-    # For now, return full raw payload.
-    # Later we can slim this down to only the fields we care about.
     return data
+
+
+@app.get("/earthquakes/summary")
+async def summary():
+    """
+    Returns the curated list (one item per quake with slimmed fields).
+    """
+    data = get_latest_curated()
+    if not data:
+        raise HTTPException(status_code=404, detail="No curated data yet")
+    return data
+
+
+@app.get("/earthquakes/stats")
+async def stats():
+    """
+    Returns basic stats computed from the curated list.
+    """
+    curated = get_latest_curated()
+    if not curated:
+        raise HTTPException(status_code=404, detail="No curated data yet")
+
+    mag_bands = Counter(item.get("mag_band", "unknown") for item in curated)
+    max_mag = max((item.get("mag") or 0) for item in curated) if curated else 0
+    total = len(curated)
+
+    return {
+        "total_events": total,
+        "max_magnitude": max_mag,
+        "count_by_mag_band": mag_bands,
+    }
 
 
 handler = Mangum(app)

@@ -7,18 +7,26 @@ s3 = boto3.client("s3")
 BUCKET = os.environ["QUAKES_BUCKET_NAME"]
 
 
-def get_latest_raw():
-    """
-    Returns the JSON from the latest object under raw/ in the quake bucket.
-    If no objects exist, returns None.
-    """
-    resp = s3.list_objects_v2(Bucket=BUCKET, Prefix="raw/")
+def _get_latest_key(prefix: str) -> str | None:
+    resp = s3.list_objects_v2(Bucket=BUCKET, Prefix=prefix)
     contents = resp.get("Contents", [])
     if not contents:
         return None
-
-    # Pick the most recently modified object
     latest = max(contents, key=lambda x: x["LastModified"])
-    obj = s3.get_object(Bucket=BUCKET, Key=latest["Key"])
-    body = obj["Body"].read().decode("utf-8")
-    return json.loads(body)
+    return latest["Key"]
+
+
+def get_latest_raw():
+    key = _get_latest_key("raw/")
+    if not key:
+        return None
+    obj = s3.get_object(Bucket=BUCKET, Key=key)
+    return json.loads(obj["Body"].read().decode("utf-8"))
+
+
+def get_latest_curated():
+    key = _get_latest_key("curated/")
+    if not key:
+        return None
+    obj = s3.get_object(Bucket=BUCKET, Key=key)
+    return json.loads(obj["Body"].read().decode("utf-8"))
